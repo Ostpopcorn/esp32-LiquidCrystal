@@ -3,7 +3,15 @@
 #include <stdio.h>
 #include <string.h>
 #include <inttypes.h>
-#include "Arduino.h"
+#include "esp_log.h"
+
+#define TAG "LCD"
+// DEssa är bara så att den tillfälligt kompilerar.
+#define HIGH 1
+#define LOW 0
+#define pinMode(pin,mode) ESP_LOGI(TAG,"pinMode call... fix pliz")
+#define digitalWrite(pin,mode) ESP_LOGI(TAG,"digitalWrite call... fix pliz")
+#define delayMicroseconds(time) ESP_LOGI(TAG,"delayMicroseconds call... fix pliz")
 
 // When the display powers up, it is configured as follows:
 //
