@@ -1,5 +1,8 @@
 #include "LiquidCrystal.h"
 
+#include "freertos/FreeRTOS.h"
+#include "freertos/task.h"
+#include "driver/gpio.h"
 #include <stdio.h>
 #include <string.h>
 #include <inttypes.h>
@@ -9,10 +12,29 @@
 // DEssa är bara så att den tillfälligt kompilerar.
 #define HIGH 1
 #define LOW 0
-#define pinMode(pin,mode) ESP_LOGI(TAG,"pinMode call... fix pliz")
-#define digitalWrite(pin,mode) ESP_LOGI(TAG,"digitalWrite call... fix pliz")
-#define delayMicroseconds(time) ESP_LOGI(TAG,"delayMicroseconds call... fix pliz")
+// #define digitalWrite(pin,mode) ESP_LOGI(TAG,"digitalWrite call... fix pliz")
+// #define delayMicroseconds(time) ESP_LOGI(TAG,"delayMicroseconds call... fix pliz")
+#define NOP() asm volatile ("nop")
 
+unsigned long IRAM_ATTR micros()
+{
+    return (unsigned long) (esp_timer_get_time());
+}
+void IRAM_ATTR delayMicroseconds(uint32_t us)
+{
+    uint32_t m = micros();
+    if(us){
+        uint32_t e = (m + us);
+        if(m > e){ //overflow
+            while(micros() > e){
+                NOP();
+            }
+        }
+        while(micros() < e){
+            NOP();
+        }
+    }
+}
 // When the display powers up, it is configured as follows:
 //
 // 1. Display clear
@@ -32,35 +54,35 @@
 // can't assume that its in that state when a sketch starts (and the
 // LiquidCrystal constructor is called).
 
-LiquidCrystal::LiquidCrystal(uint8_t rs, uint8_t rw, uint8_t enable,
-			     uint8_t d0, uint8_t d1, uint8_t d2, uint8_t d3,
-			     uint8_t d4, uint8_t d5, uint8_t d6, uint8_t d7)
+LiquidCrystal::LiquidCrystal(gpio_num_t rs, gpio_num_t rw, gpio_num_t enable,
+			     gpio_num_t d0, gpio_num_t d1, gpio_num_t d2, gpio_num_t d3,
+			     gpio_num_t d4, gpio_num_t d5, gpio_num_t d6, gpio_num_t d7)
 {
   init(0, rs, rw, enable, d0, d1, d2, d3, d4, d5, d6, d7);
 }
 
-LiquidCrystal::LiquidCrystal(uint8_t rs, uint8_t enable,
-			     uint8_t d0, uint8_t d1, uint8_t d2, uint8_t d3,
-			     uint8_t d4, uint8_t d5, uint8_t d6, uint8_t d7)
+LiquidCrystal::LiquidCrystal(gpio_num_t rs, gpio_num_t enable,
+			     gpio_num_t d0, gpio_num_t d1, gpio_num_t d2, gpio_num_t d3,
+			     gpio_num_t d4, gpio_num_t d5, gpio_num_t d6, gpio_num_t d7)
 {
-  init(0, rs, 255, enable, d0, d1, d2, d3, d4, d5, d6, d7);
+  init(0, rs, GPIO_NUM_NC, enable, d0, d1, d2, d3, d4, d5, d6, d7);
 }
 
-LiquidCrystal::LiquidCrystal(uint8_t rs, uint8_t rw, uint8_t enable,
-			     uint8_t d0, uint8_t d1, uint8_t d2, uint8_t d3)
+LiquidCrystal::LiquidCrystal(gpio_num_t rs, gpio_num_t rw, gpio_num_t enable,
+			     gpio_num_t d0, gpio_num_t d1, gpio_num_t d2, gpio_num_t d3)
 {
-  init(1, rs, rw, enable, d0, d1, d2, d3, 0, 0, 0, 0);
+  init(1, rs, rw, enable, d0, d1, d2, d3, GPIO_NUM_NC, GPIO_NUM_NC, GPIO_NUM_NC, GPIO_NUM_NC);
 }
 
-LiquidCrystal::LiquidCrystal(uint8_t rs,  uint8_t enable,
-			     uint8_t d0, uint8_t d1, uint8_t d2, uint8_t d3)
+LiquidCrystal::LiquidCrystal(gpio_num_t rs,  gpio_num_t enable,
+			     gpio_num_t d0, gpio_num_t d1, gpio_num_t d2, gpio_num_t d3)
 {
-  init(1, rs, 255, enable, d0, d1, d2, d3, 0, 0, 0, 0);
+  init(1, rs, GPIO_NUM_NC, enable, d0, d1, d2, d3, GPIO_NUM_NC, GPIO_NUM_NC, GPIO_NUM_NC, GPIO_NUM_NC);
 }
 
-void LiquidCrystal::init(uint8_t fourbitmode, uint8_t rs, uint8_t rw, uint8_t enable,
-			 uint8_t d0, uint8_t d1, uint8_t d2, uint8_t d3,
-			 uint8_t d4, uint8_t d5, uint8_t d6, uint8_t d7)
+void LiquidCrystal::init(uint8_t fourbitmode, gpio_num_t rs, gpio_num_t rw, gpio_num_t enable,
+			 gpio_num_t d0, gpio_num_t d1, gpio_num_t d2, gpio_num_t d3,
+			 gpio_num_t d4, gpio_num_t d5, gpio_num_t d6, gpio_num_t d7)
 {
   _rs_pin = rs;
   _rw_pin = rw;
@@ -84,6 +106,14 @@ void LiquidCrystal::init(uint8_t fourbitmode, uint8_t rs, uint8_t rw, uint8_t en
 }
 
 void LiquidCrystal::begin(uint8_t cols, uint8_t lines, uint8_t dotsize) {
+  
+  gpio_config_t io_conf = {
+    .pin_bit_mask = 0,
+    .mode = GPIO_MODE_OUTPUT,
+    .pull_up_en = GPIO_PULLUP_DISABLE,
+    .pull_down_en = GPIO_PULLDOWN_DISABLE,
+    .intr_type = GPIO_INTR_DISABLE,
+  };
   if (lines > 1) {
     _displayfunction |= LCD_2LINE;
   }
@@ -96,28 +126,36 @@ void LiquidCrystal::begin(uint8_t cols, uint8_t lines, uint8_t dotsize) {
     _displayfunction |= LCD_5x10DOTS;
   }
 
-  pinMode(_rs_pin, OUTPUT);
+  uint64_t pin_mask_ctrl = (1ULL<<_rs_pin) | (1ULL<<_enable_pin);
+
   // we can save 1 pin by not using RW. Indicate by passing 255 instead of pin#
-  if (_rw_pin != 255) { 
-    pinMode(_rw_pin, OUTPUT);
+  if (_rw_pin != GPIO_NUM_NC) { 
+    pin_mask_ctrl |= (1ULL<<_rw_pin);
   }
-  pinMode(_enable_pin, OUTPUT);
+  
   
   // Do these once, instead of every time a character is drawn for speed reasons.
   for (int i=0; i<((_displayfunction & LCD_8BITMODE) ? 8 : 4); ++i)
   {
-    pinMode(_data_pins[i], OUTPUT);
-   } 
+    pin_mask_ctrl |= (1ULL<<_data_pins[i]);
+  } 
+  //bit mask of the pins that you want to set,e.g.GPIO18/19
+  io_conf.pin_bit_mask = pin_mask_ctrl;
 
+  gpio_config(&io_conf);
   // SEE PAGE 45/46 FOR INITIALIZATION SPECIFICATION!
   // according to datasheet, we need at least 40ms after power rises above 2.7V
   // before sending commands. Arduino can turn on way before 4.5V so we'll wait 50
-  delayMicroseconds(50000); 
+  
+  vTaskDelay(50 / portTICK_PERIOD_MS);
+  
+
   // Now we pull both RS and R/W low to begin commands
-  digitalWrite(_rs_pin, LOW);
-  digitalWrite(_enable_pin, LOW);
-  if (_rw_pin != 255) { 
-    digitalWrite(_rw_pin, LOW);
+  
+  gpio_set_level(_rs_pin, LOW);
+  gpio_set_level(_enable_pin, LOW);
+  if (_rw_pin != GPIO_NUM_NC) { 
+    gpio_set_level(_rw_pin, LOW);
   }
   
   //put the LCD into 4 bit or 8 bit mode
@@ -127,11 +165,11 @@ void LiquidCrystal::begin(uint8_t cols, uint8_t lines, uint8_t dotsize) {
 
     // we start in 8bit mode, try to set 4 bit mode
     write4bits(0x03);
-    delayMicroseconds(4500); // wait min 4.1ms
+    vTaskDelay(5 / portTICK_PERIOD_MS);// wait min 4.1ms
 
     // second try
     write4bits(0x03);
-    delayMicroseconds(4500); // wait min 4.1ms
+    vTaskDelay(5 / portTICK_PERIOD_MS); // wait min 4.1ms
     
     // third go!
     write4bits(0x03); 
@@ -145,7 +183,7 @@ void LiquidCrystal::begin(uint8_t cols, uint8_t lines, uint8_t dotsize) {
 
     // Send function set command sequence
     command(LCD_FUNCTIONSET | _displayfunction);
-    delayMicroseconds(4500);  // wait more than 4.1ms
+    vTaskDelay(5 / portTICK_PERIOD_MS);  // wait more than 4.1ms
 
     // second try
     command(LCD_FUNCTIONSET | _displayfunction);
@@ -184,13 +222,13 @@ void LiquidCrystal::setRowOffsets(int row0, int row1, int row2, int row3)
 void LiquidCrystal::clear()
 {
   command(LCD_CLEARDISPLAY);  // clear display, set cursor position to zero
-  delayMicroseconds(2000);  // this command takes a long time!
+    vTaskDelay(2 / portTICK_PERIOD_MS); // this command takes a long time!
 }
 
 void LiquidCrystal::home()
 {
   command(LCD_RETURNHOME);  // set cursor position to zero
-  delayMicroseconds(2000);  // this command takes a long time!
+  vTaskDelay(2 / portTICK_PERIOD_MS);  // this command takes a long time!
 }
 
 void LiquidCrystal::setCursor(uint8_t col, uint8_t row)
@@ -293,11 +331,11 @@ inline size_t LiquidCrystal::write(uint8_t value) {
 
 // write either command or data, with automatic 4/8-bit selection
 void LiquidCrystal::send(uint8_t value, uint8_t mode) {
-  digitalWrite(_rs_pin, mode);
+  gpio_set_level(_rs_pin, mode);
 
   // if there is a RW pin indicated, set it low to Write
   if (_rw_pin != 255) { 
-    digitalWrite(_rw_pin, LOW);
+    gpio_set_level(_rw_pin, LOW);
   }
   
   if (_displayfunction & LCD_8BITMODE) {
@@ -309,17 +347,17 @@ void LiquidCrystal::send(uint8_t value, uint8_t mode) {
 }
 
 void LiquidCrystal::pulseEnable(void) {
-  digitalWrite(_enable_pin, LOW);
+  gpio_set_level(_enable_pin, LOW);
   delayMicroseconds(1);    
-  digitalWrite(_enable_pin, HIGH);
+  gpio_set_level(_enable_pin, HIGH);
   delayMicroseconds(1);    // enable pulse must be >450ns
-  digitalWrite(_enable_pin, LOW);
+  gpio_set_level(_enable_pin, LOW);
   delayMicroseconds(100);   // commands need > 37us to settle
 }
 
 void LiquidCrystal::write4bits(uint8_t value) {
   for (int i = 0; i < 4; i++) {
-    digitalWrite(_data_pins[i], (value >> i) & 0x01);
+    gpio_set_level(_data_pins[i], (value >> i) & 0x01);
   }
 
   pulseEnable();
@@ -327,7 +365,7 @@ void LiquidCrystal::write4bits(uint8_t value) {
 
 void LiquidCrystal::write8bits(uint8_t value) {
   for (int i = 0; i < 8; i++) {
-    digitalWrite(_data_pins[i], (value >> i) & 0x01);
+    gpio_set_level(_data_pins[i], (value >> i) & 0x01);
   }
   
   pulseEnable();

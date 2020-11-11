@@ -1,6 +1,7 @@
 #ifndef LiquidCrystal_h
 #define LiquidCrystal_h
 
+#include "driver/gpio.h"
 
 #include <stdio.h>
 #include <inttypes.h>
@@ -46,20 +47,20 @@
 
 class LiquidCrystal {
 public:
-  LiquidCrystal(uint8_t rs, uint8_t enable,
-		uint8_t d0, uint8_t d1, uint8_t d2, uint8_t d3,
-		uint8_t d4, uint8_t d5, uint8_t d6, uint8_t d7);
-  LiquidCrystal(uint8_t rs, uint8_t rw, uint8_t enable,
-		uint8_t d0, uint8_t d1, uint8_t d2, uint8_t d3,
-		uint8_t d4, uint8_t d5, uint8_t d6, uint8_t d7);
-  LiquidCrystal(uint8_t rs, uint8_t rw, uint8_t enable,
-		uint8_t d0, uint8_t d1, uint8_t d2, uint8_t d3);
-  LiquidCrystal(uint8_t rs, uint8_t enable,
-		uint8_t d0, uint8_t d1, uint8_t d2, uint8_t d3);
+  LiquidCrystal(gpio_num_t rs, gpio_num_t enable,
+		gpio_num_t d0, gpio_num_t d1, gpio_num_t d2, gpio_num_t d3,
+		gpio_num_t d4, gpio_num_t d5, gpio_num_t d6, gpio_num_t d7);
+  LiquidCrystal(gpio_num_t rs, gpio_num_t rw, gpio_num_t enable,
+		gpio_num_t d0, gpio_num_t d1, gpio_num_t d2, gpio_num_t d3,
+		gpio_num_t d4, gpio_num_t d5, gpio_num_t d6, gpio_num_t d7);
+  LiquidCrystal(gpio_num_t rs, gpio_num_t rw, gpio_num_t enable,
+		gpio_num_t d0, gpio_num_t d1, gpio_num_t d2, gpio_num_t d3);
+  LiquidCrystal(gpio_num_t rs, gpio_num_t enable,
+		gpio_num_t d0, gpio_num_t d1, gpio_num_t d2, gpio_num_t d3);
 
-  void init(uint8_t fourbitmode, uint8_t rs, uint8_t rw, uint8_t enable,
-	    uint8_t d0, uint8_t d1, uint8_t d2, uint8_t d3,
-	    uint8_t d4, uint8_t d5, uint8_t d6, uint8_t d7);
+  void init(uint8_t fourbitmode, gpio_num_t rs, gpio_num_t rw, gpio_num_t enable,
+	    gpio_num_t d0, gpio_num_t d1, gpio_num_t d2, gpio_num_t d3,
+	    gpio_num_t d4, gpio_num_t d5, gpio_num_t d6, gpio_num_t d7);
     
   void begin(uint8_t cols, uint8_t rows, uint8_t charsize = LCD_5x8DOTS);
 
@@ -91,10 +92,10 @@ private:
   void write8bits(uint8_t);
   void pulseEnable();
 
-  uint8_t _rs_pin; // LOW: command.  HIGH: character.
-  uint8_t _rw_pin; // LOW: write to LCD.  HIGH: read from LCD.
-  uint8_t _enable_pin; // activated by a HIGH pulse.
-  uint8_t _data_pins[8];
+  gpio_num_t _rs_pin; // LOW: command.  HIGH: character.
+  gpio_num_t _rw_pin; // LOW: write to LCD.  HIGH: read from LCD.
+  gpio_num_t _enable_pin; // activated by a HIGH pulse.
+  gpio_num_t _data_pins[8];
 
   uint8_t _displayfunction;
   uint8_t _displaycontrol;
