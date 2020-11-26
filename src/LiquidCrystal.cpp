@@ -107,6 +107,7 @@ void LiquidCrystal::init(uint8_t fourbitmode, gpio_num_t rs, gpio_num_t rw, gpio
 
 void LiquidCrystal::begin(uint8_t cols, uint8_t lines, uint8_t dotsize) {
   
+  _displayfunction = LCD_8BITMODE | LCD_1LINE | LCD_5x8DOTS;
   gpio_config_t io_conf = {
     .pin_bit_mask = 0,
     .mode = GPIO_MODE_OUTPUT,

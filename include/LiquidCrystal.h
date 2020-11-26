@@ -86,7 +86,7 @@ public:
     RW_PIN,
     E_PIN,
   } ctrl_pins;
-  virtual void init();
+  virtual void init() = 0;
   void send(uint8_t value, uint8_t mode){
     writeCtrlBuffer(RS_PIN,mode); //gpio_set_level(_rs_pin, mode);
 
@@ -124,15 +124,50 @@ protected:
 
   virtual void latch() = 0;
   virtual void pulseEnable() = 0;
-  //virtual void writebits(uint8_t) = 0; // Always use this to let the subclasses deal with the rest
-  //virtual void write4bits(uint8_t) = 0;
-  //virtual void write8bits(uint8_t) = 0;
 private:
   uint8_t _data_buffer;
   uint8_t _ctrl_buffer; // RS(4) RW(2) E(1)
   bit_mode mode;
 };
+
+
+
 class LcdTransportGPIO : public LcdTransport{
+public:
+  LcdTransportGPIO(bit_mode pinmode,gpio_num_t rs, gpio_num_t rw, gpio_num_t enable,
+			 gpio_num_t d0, gpio_num_t d1, gpio_num_t d2, gpio_num_t d3,
+			 gpio_num_t d4, gpio_num_t d5, gpio_num_t d6, gpio_num_t d7) : LcdTransport(pinmode)
+  {
+    // Kanske ska kontrollera att den får tillräckligt många pins
+    setCtrlPin(ctrl_pins::RS_PIN, rs);
+    setCtrlPin(ctrl_pins::RW_PIN, rw);
+    setCtrlPin(ctrl_pins::E_PIN, enable);
+    setDataPin(0,d0);
+    setDataPin(1,d1);
+    setDataPin(2,d2);
+    setDataPin(3,d3);
+    setDataPin(4,d4);
+    setDataPin(5,d5);
+    setDataPin(6,d6);
+    setDataPin(7,d7);
+    gpio_config_t io_conf = {
+      .pin_bit_mask = 0,
+      .mode = GPIO_MODE_OUTPUT,
+      .pull_up_en = GPIO_PULLUP_DISABLE,
+      .pull_down_en = GPIO_PULLDOWN_DISABLE,
+      .intr_type = GPIO_INTR_DISABLE,
+    };
+    uint64_t pin_mask_ctrl = (1ULL<<_rs_pin) | (1ULL<<_enable_pin);
+    if (_rw_pin != GPIO_NUM_NC) { 
+      pin_mask_ctrl |= (1ULL<<_rw_pin);
+    }
+    for (int i=0; i<(get_bit_mode() == EIGHT_BIT ? 8 : 4); ++i)
+    {
+      pin_mask_ctrl |= (1ULL<<_data_pins[i]);
+    } 
+    io_conf.pin_bit_mask = pin_mask_ctrl;
+    gpio_config(&io_conf);
+  }
 protected:
   void latch() override {
     // alla nya data ska ut på samtliga linor, ska optimeras sen så att bara de som
@@ -173,9 +208,25 @@ protected:
   gpio_num_t _rs_pin; // LOW: command.  HIGH: character.
   gpio_num_t _rw_pin; // LOW: write to LCD.  HIGH: read from LCD.
   gpio_num_t _enable_pin; // activated by a HIGH pulse.
-  gpio_num_t _data_pins[8];
+  gpio_num_t _data_pins[8] = {GPIO_NUM_NC,GPIO_NUM_NC,GPIO_NUM_NC,GPIO_NUM_NC,
+                              GPIO_NUM_NC,GPIO_NUM_NC,GPIO_NUM_NC,GPIO_NUM_NC};
 
-    
+private:
+
+  void setDataPin(uint8_t pin, gpio_num_t gpio){
+    _data_pins[pin] = gpio;
+  }
+  void setCtrlPin(ctrl_pins pin, gpio_num_t gpio){
+    if (pin == ctrl_pins::RS_PIN){
+      _rs_pin = gpio;
+    }
+    else if (pin == ctrl_pins::RW_PIN){
+      _rw_pin = gpio;
+    }
+    else if (pin == ctrl_pins::E_PIN){
+      _enable_pin = gpio;
+    }
+  }
 };
 
 
