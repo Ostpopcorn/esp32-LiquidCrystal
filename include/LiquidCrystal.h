@@ -3,6 +3,7 @@
 
 #include "driver/gpio.h"
 
+#include "freertos/FreeRTOS.h"
 #include <stdio.h>
 #include <inttypes.h>
 // #include "Print.h"
@@ -76,17 +77,15 @@ public:
     EIGHT_BIT= 1,
     FOUR_BIT,
   } bit_mode;
-  LcdTransport(bit_mode mode){
-    this->mode = mode;
-  }
-
   typedef enum ctrl_pins{
     NO_PIN = 0,
     RS_PIN,
     RW_PIN,
     E_PIN,
   } ctrl_pins;
-  virtual void init() = 0;
+  
+  LcdTransport():mode{EIGHT_BIT}{};
+  LcdTransport(bit_mode mode):mode{mode} {};
   void send(uint8_t value, uint8_t mode){
     writeCtrlBuffer(RS_PIN,mode); //gpio_set_level(_rs_pin, mode);
 
@@ -97,6 +96,9 @@ public:
     pulseEnable();
   }
 
+  bit_mode get_bit_mode(){
+    return mode;
+  }
 protected:
   void writeDataBuffer(uint8_t data_in){
     _data_buffer = data_in;
@@ -118,22 +120,21 @@ protected:
   uint8_t get_ctrl_buffer_mask(ctrl_pins pin){
     return 1<<(ctrl_pins::RS_PIN-1);
   }
-  bit_mode get_bit_mode(){
-    return mode;
-  }
 
-  virtual void latch() = 0;
-  virtual void pulseEnable() = 0;
+  virtual void latch();
+  virtual void pulseEnable();
 private:
-  uint8_t _data_buffer;
-  uint8_t _ctrl_buffer; // RS(4) RW(2) E(1)
+  uint8_t _data_buffer = 0;
+  uint8_t _ctrl_buffer = 0; // RS(4) RW(2) E(1)
   bit_mode mode;
 };
 
 
 
+
 class LcdTransportGPIO : public LcdTransport{
 public:
+  LcdTransportGPIO() = default;
   LcdTransportGPIO(bit_mode pinmode,gpio_num_t rs, gpio_num_t rw, gpio_num_t enable,
 			 gpio_num_t d0, gpio_num_t d1, gpio_num_t d2, gpio_num_t d3,
 			 gpio_num_t d4, gpio_num_t d5, gpio_num_t d6, gpio_num_t d7) : LcdTransport(pinmode)
@@ -237,8 +238,12 @@ protected:
   gpio_num_t _latch; // activated by a HIGH pulse.
 
 };
-class LiquidCrystal {
+template <class transport_t> 
+class LiquidCrystal{
 public:
+  LiquidCrystal();
+  LiquidCrystal(transport_t);
+  /*
   LiquidCrystal(gpio_num_t rs, gpio_num_t enable,
 		gpio_num_t d0, gpio_num_t d1, gpio_num_t d2, gpio_num_t d3,
 		gpio_num_t d4, gpio_num_t d5, gpio_num_t d6, gpio_num_t d7);
@@ -249,11 +254,9 @@ public:
 		gpio_num_t d0, gpio_num_t d1, gpio_num_t d2, gpio_num_t d3);
   LiquidCrystal(gpio_num_t rs, gpio_num_t enable,
 		gpio_num_t d0, gpio_num_t d1, gpio_num_t d2, gpio_num_t d3);
-
-  void init(uint8_t fourbitmode, gpio_num_t rs, gpio_num_t rw, gpio_num_t enable,
-	    gpio_num_t d0, gpio_num_t d1, gpio_num_t d2, gpio_num_t d3,
-	    gpio_num_t d4, gpio_num_t d5, gpio_num_t d6, gpio_num_t d7);
-    
+  */
+  void init();
+  
   void begin(uint8_t cols, uint8_t rows, uint8_t charsize = LCD_5x8DOTS);
 
   void clear();
@@ -279,15 +282,6 @@ public:
   void command(uint8_t);
   
 private:
-  void send(uint8_t, uint8_t);
-  void write4bits(uint8_t);
-  void write8bits(uint8_t);
-  void pulseEnable();
-
-  gpio_num_t _rs_pin; // LOW: command.  HIGH: character.
-  gpio_num_t _rw_pin; // LOW: write to LCD.  HIGH: read from LCD.
-  gpio_num_t _enable_pin; // activated by a HIGH pulse.
-  gpio_num_t _data_pins[8];
 
   uint8_t _displayfunction;
   uint8_t _displaycontrol;
@@ -297,6 +291,7 @@ private:
 
   uint8_t _numlines;
   uint8_t _row_offsets[4];
+  transport_t transport;
 };
 
 #endif
