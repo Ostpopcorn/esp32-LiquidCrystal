@@ -45,6 +45,147 @@
 #define LCD_5x10DOTS 0x04
 #define LCD_5x8DOTS 0x00
 
+
+// DENNA SKA BORT SEN--------------------------
+#define NOP() asm volatile ("nop")
+
+unsigned long IRAM_ATTR micros()
+{
+    return (unsigned long) (esp_timer_get_time());
+}
+void IRAM_ATTR delayMicroseconds(uint32_t us)
+{
+    uint32_t m = micros();
+    if(us){
+        uint32_t e = (m + us);
+        if(m > e){ //overflow
+            while(micros() > e){
+                NOP();
+            }
+        }
+        while(micros() < e){
+            NOP();
+        }
+    }
+}
+//-------------------
+
+class LcdTransport{
+public:
+  typedef enum bit_mode{
+    EIGHT_BIT= 1,
+    FOUR_BIT,
+  } bit_mode;
+  LcdTransport(bit_mode mode){
+    this->mode = mode;
+  }
+
+  typedef enum ctrl_pins{
+    NO_PIN = 0,
+    RS_PIN,
+    RW_PIN,
+    E_PIN,
+  } ctrl_pins;
+  virtual void init();
+  void send(uint8_t value, uint8_t mode){
+    writeCtrlBuffer(RS_PIN,mode); //gpio_set_level(_rs_pin, mode);
+
+    // if there is a RW pin indicated, set it low to Write, subclasses will deal the rest
+    writeCtrlBuffer(RW_PIN,0); //gpio_set_level(_rs_pin, mode);
+    writeDataBuffer(value);
+    latch();
+    pulseEnable();
+  }
+
+protected:
+  void writeDataBuffer(uint8_t data_in){
+    _data_buffer = data_in;
+  }
+  void writeCtrlBuffer(ctrl_pins pin, uint8_t value){
+    if (pin != NO_PIN){
+      // set the position to zero
+      _ctrl_buffer &= ~(1<<(pin-1));
+      // write to that position
+      _ctrl_buffer |= (value==0?0:1)<<(pin-1);
+    }
+  }
+  uint8_t get_data_buffer(){
+    return _data_buffer;
+  }
+  uint8_t get_ctrl_buffer(){
+    return _ctrl_buffer;
+  } 
+  uint8_t get_ctrl_buffer_mask(ctrl_pins pin){
+    return 1<<(ctrl_pins::RS_PIN-1);
+  }
+  bit_mode get_bit_mode(){
+    return mode;
+  }
+
+  virtual void latch() = 0;
+  virtual void pulseEnable() = 0;
+  //virtual void writebits(uint8_t) = 0; // Always use this to let the subclasses deal with the rest
+  //virtual void write4bits(uint8_t) = 0;
+  //virtual void write8bits(uint8_t) = 0;
+private:
+  uint8_t _data_buffer;
+  uint8_t _ctrl_buffer; // RS(4) RW(2) E(1)
+  bit_mode mode;
+};
+class LcdTransportGPIO : public LcdTransport{
+protected:
+  void latch() override {
+    // alla nya data ska ut på samtliga linor, ska optimeras sen så att bara de som
+    // ändrats på ska uppdateras
+    if (get_bit_mode() == EIGHT_BIT) {
+      write8bits(get_data_buffer()); 
+    } else {
+      write4bits(get_data_buffer()>>4);
+      write4bits(get_data_buffer());
+    }
+    gpio_set_level(_rs_pin, (get_ctrl_buffer() & get_ctrl_buffer_mask(ctrl_pins::RS_PIN)));
+    gpio_set_level(_rw_pin, (get_ctrl_buffer() & get_ctrl_buffer_mask(ctrl_pins::RW_PIN)));
+    gpio_set_level(_enable_pin, (get_ctrl_buffer() & get_ctrl_buffer_mask(ctrl_pins::E_PIN)));
+  }
+  void write4bits(uint8_t value) {
+    for (int i = 0; i < 4; i++) {
+      gpio_set_level(_data_pins[i], (value >> i) & 0x01);
+    }
+
+    pulseEnable();
+  }
+  void write8bits(uint8_t value) {
+    for (int i = 0; i < 8; i++) {
+      gpio_set_level(_data_pins[i], (value >> i) & 0x01);
+    }
+    
+    pulseEnable();
+  }
+  void pulseEnable(void) override {
+    // Ska se om denna kan köras via latch och de andra funktioner så att koder blir snyggare
+    gpio_set_level(_enable_pin, 0);
+    delayMicroseconds(1);    
+    gpio_set_level(_enable_pin, 1);
+    delayMicroseconds(1);    // enable pulse must be >450ns
+    gpio_set_level(_enable_pin, 0);
+    delayMicroseconds(100);   // commands need > 37us to settle
+  }
+  gpio_num_t _rs_pin; // LOW: command.  HIGH: character.
+  gpio_num_t _rw_pin; // LOW: write to LCD.  HIGH: read from LCD.
+  gpio_num_t _enable_pin; // activated by a HIGH pulse.
+  gpio_num_t _data_pins[8];
+
+    
+};
+
+
+class LcdTransport74HC595{
+protected:
+  gpio_num_t _data; // LOW: command.  HIGH: character.
+  gpio_num_t _clk; // LOW: write to LCD.  HIGH: read from LCD.
+  gpio_num_t _latch; // activated by a HIGH pulse.
+
+};
 class LiquidCrystal {
 public:
   LiquidCrystal(gpio_num_t rs, gpio_num_t enable,
