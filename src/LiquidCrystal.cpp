@@ -8,35 +8,16 @@
 #include <inttypes.h>
 #include "esp_log.h"
 
+#include "LcdTransport.h"
+#include "delayMicroseconds.h"
+
 #define TAG "LCD"
 // DEssa är bara så att den tillfälligt kompilerar.
 #define HIGH 1
 #define LOW 0
 // #define digitalWrite(pin,mode) ESP_LOGI(TAG,"digitalWrite call... fix pliz")
 // #define delayMicroseconds(time) ESP_LOGI(TAG,"delayMicroseconds call... fix pliz")
-/*
-#define NOP() asm volatile ("nop")
 
-unsigned long IRAM_ATTR micros()
-{
-    return (unsigned long) (esp_timer_get_time());
-}
-void IRAM_ATTR delayMicroseconds(uint32_t us)
-{
-    uint32_t m = micros();
-    if(us){
-        uint32_t e = (m + us);
-        if(m > e){ //overflow
-            while(micros() > e){
-                NOP();
-            }
-        }
-        while(micros() < e){
-            NOP();
-        }
-    }
-}
-*/
 // When the display powers up, it is configured as follows:
 //
 // 1. Display clear
