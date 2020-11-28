@@ -17,8 +17,9 @@ public:
     E_PIN,
   } ctrl_pins;
   
-  LcdTransport():mode{EIGHT_BIT}{};
-  LcdTransport(bit_mode mode):mode{mode} {};
+  LcdTransport();
+  LcdTransport(bit_mode mode);
+  virtual ~LcdTransport();
   void send(uint8_t value, uint8_t mode);
 
   bit_mode get_bit_mode();

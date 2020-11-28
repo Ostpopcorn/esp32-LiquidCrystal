@@ -5,6 +5,7 @@
 #include "freertos/FreeRTOS.h"
 #include <stdio.h>
 #include <inttypes.h>
+#include "LcdTransport.h"
 // #include "Print.h"
 
 // commands
@@ -45,13 +46,18 @@
 #define LCD_5x10DOTS 0x04
 #define LCD_5x8DOTS 0x00
 
-
+template <class transport_t> class LiquidCrystal;
+template <> class LiquidCrystal<LcdTransport>;
 
 template <class transport_t> 
-class LiquidCrystal{
+class LiquidCrystal{};
+
+template <> 
+class LiquidCrystal<LcdTransport>{
 public:
   LiquidCrystal();
-  LiquidCrystal(transport_t);
+  LiquidCrystal(LcdTransport);
+  virtual ~LiquidCrystal();
   void init();
   
   void begin(uint8_t cols, uint8_t rows, uint8_t charsize = LCD_5x8DOTS);
@@ -88,7 +94,7 @@ private:
 
   uint8_t _numlines;
   uint8_t _row_offsets[4];
-  transport_t transport;
+  LcdTransport transport;
 };
 
 #endif

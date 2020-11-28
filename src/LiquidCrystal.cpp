@@ -58,11 +58,33 @@ LiquidCrystal::LiquidCrystal(gpio_num_t rs,  gpio_num_t enable,
 
 */
 
-template<>
+template<> template<>
 inline void LiquidCrystal<LcdTransport>::command(uint8_t value);
 template<>
 inline size_t LiquidCrystal<LcdTransport>::write(uint8_t value);
+template<>
+void LiquidCrystal<LcdTransport>::begin(uint8_t cols, uint8_t lines, uint8_t dotsize);
 
+
+template <>
+LiquidCrystal<LcdTransport>::LiquidCrystal(LcdTransport transport){
+  transport = transport;
+  if (transport.get_bit_mode() == LcdTransport::bit_mode::FOUR_BIT)
+    _displayfunction = LCD_4BITMODE | LCD_1LINE | LCD_5x8DOTS;
+  else 
+    _displayfunction = LCD_8BITMODE | LCD_1LINE | LCD_5x8DOTS;
+  begin(16, 1);  
+}
+
+template<class transport_t>
+LiquidCrystal<transport_t>::LiquidCrystal(){
+
+}
+
+template<class transport_t>
+LiquidCrystal<transport_t>::~LiquidCrystal(){
+
+}
 
 template<>
 void LiquidCrystal<LcdTransport>::begin(uint8_t cols, uint8_t lines, uint8_t dotsize) {
@@ -145,30 +167,6 @@ void LiquidCrystal<LcdTransport>::begin(uint8_t cols, uint8_t lines, uint8_t dot
   _displaymode = LCD_ENTRYLEFT | LCD_ENTRYSHIFTDECREMENT;
   // set the entry mode
   command(LCD_ENTRYMODESET | _displaymode);
-
-}
-template <>
-LiquidCrystal<LcdTransport>::LiquidCrystal(LcdTransport transport){
-  transport = transport;
-  if (transport.get_bit_mode() == LcdTransport::bit_mode::FOUR_BIT)
-    _displayfunction = LCD_4BITMODE | LCD_1LINE | LCD_5x8DOTS;
-  else 
-    _displayfunction = LCD_8BITMODE | LCD_1LINE | LCD_5x8DOTS;
-  begin(16, 1);  
-}
-
-template<>
-inline void LiquidCrystal<LcdTransport>::command(uint8_t value) {
-  transport.send(value, LOW);
-}
-template<>
-inline size_t LiquidCrystal<LcdTransport>::write(uint8_t value) {
-  transport.send(value, HIGH);
-  return 1; // assume sucess
-}
-
-template<class transport_t>
-LiquidCrystal<transport_t>::LiquidCrystal(){
 
 }
 
@@ -304,4 +302,15 @@ void LiquidCrystal<transport_t>::createChar(uint8_t location, uint8_t charmap[])
   for (int i=0; i<8; i++) {
     write(charmap[i]);
   }
+}
+
+
+template<>
+inline void LiquidCrystal<LcdTransport>::command(uint8_t value) {
+  transport.send(value, LOW);
+}
+template<>
+inline size_t LiquidCrystal<LcdTransport>::write(uint8_t value) {
+  transport.send(value, HIGH);
+  return 1; // assume sucess
 }

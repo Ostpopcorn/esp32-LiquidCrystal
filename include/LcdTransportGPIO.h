@@ -11,6 +11,7 @@
 class LcdTransportGPIO : public LcdTransport{
 public:
   LcdTransportGPIO() = default;
+  virtual ~LcdTransportGPIO() = default;
   LcdTransportGPIO(bit_mode pinmode,gpio_num_t rs, gpio_num_t rw, gpio_num_t enable,
 			 gpio_num_t d0, gpio_num_t d1, gpio_num_t d2, gpio_num_t d3,
 			 gpio_num_t d4, gpio_num_t d5, gpio_num_t d6, gpio_num_t d7);

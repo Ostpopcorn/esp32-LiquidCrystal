@@ -2,6 +2,15 @@
 #include "freertos/FreeRTOS.h"
 
 
+LcdTransport::LcdTransport():mode{EIGHT_BIT}{
+
+}
+LcdTransport::LcdTransport(bit_mode mode):mode{mode}{
+
+}
+LcdTransport::~LcdTransport(){
+    
+}
 //-------------------
 void LcdTransport::send(uint8_t value, uint8_t mode){
     writeCtrlBuffer(RS_PIN,mode); //gpio_set_level(_rs_pin, mode);
