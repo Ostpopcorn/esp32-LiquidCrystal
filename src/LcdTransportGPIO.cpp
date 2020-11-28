@@ -36,19 +36,30 @@ LcdTransportGPIO::LcdTransportGPIO(bit_mode pinmode,gpio_num_t rs, gpio_num_t rw
   } 
   io_conf.pin_bit_mask = pin_mask_ctrl;
   gpio_config(&io_conf);
+  writeCtrlBuffer(LcdTransport::ctrl_pins::E_PIN,0);
+  writeCtrlBuffer(LcdTransport::ctrl_pins::RS_PIN,0);
+  writeCtrlBuffer(LcdTransport::ctrl_pins::RW_PIN,0);
+  writeDataBuffer(0);
+  latch();
 }
-void LcdTransportGPIO::latch() {
+void LcdTransportGPIO::latch(bool only_send_four_bits) {
   // alla nya data ska ut på samtliga linor, ska optimeras sen så att bara de som
   // ändrats på ska uppdateras
+  
+  gpio_set_level(_rw_pin, (get_ctrl_buffer() & get_ctrl_buffer_mask(ctrl_pins::RW_PIN)));
+  gpio_set_level(_rs_pin, (get_ctrl_buffer() & get_ctrl_buffer_mask(ctrl_pins::RS_PIN)));
+  gpio_set_level(_rs_pin, (get_ctrl_buffer() & get_ctrl_buffer_mask(ctrl_pins::E_PIN)));
+
+
   if (get_bit_mode() == EIGHT_BIT) {
     write8bits(get_data_buffer()); 
   } else {
-    write4bits(get_data_buffer()>>4);
+    if(!only_send_four_bits){
+      write4bits(get_data_buffer()>>4);
+    }
     write4bits(get_data_buffer());
   }
-  gpio_set_level(_rs_pin, (get_ctrl_buffer() & get_ctrl_buffer_mask(ctrl_pins::RS_PIN)));
-  gpio_set_level(_rw_pin, (get_ctrl_buffer() & get_ctrl_buffer_mask(ctrl_pins::RW_PIN)));
-  gpio_set_level(_enable_pin, (get_ctrl_buffer() & get_ctrl_buffer_mask(ctrl_pins::E_PIN)));
+  //gpio_set_level(_enable_pin, (get_ctrl_buffer() & get_ctrl_buffer_mask(ctrl_pins::E_PIN)));
 }
 void LcdTransportGPIO::write4bits(uint8_t value) {
   for (int i = 0; i < 4; i++) {

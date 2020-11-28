@@ -50,7 +50,9 @@ template <class transport_t> class LiquidCrystal;
 template <> class LiquidCrystal<LcdTransport>;
 
 template <class transport_t> 
-class LiquidCrystal{};
+class LiquidCrystal{
+
+};
 
 template <> 
 class LiquidCrystal<LcdTransport>{

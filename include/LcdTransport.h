@@ -20,7 +20,7 @@ public:
   LcdTransport();
   LcdTransport(bit_mode mode);
   virtual ~LcdTransport();
-  void send(uint8_t value, uint8_t mode);
+  void send(uint8_t value, uint8_t mode, bool only_send_four_bits = false);
 
   bit_mode get_bit_mode();
 protected:
@@ -31,8 +31,8 @@ protected:
   uint8_t get_ctrl_buffer();
   uint8_t get_ctrl_buffer_mask(ctrl_pins pin);
 
-  virtual void latch();
-  virtual void pulseEnable();
+  virtual void latch(bool only_send_four_bits = false) = 0;
+  virtual void pulseEnable() = 0;
 private:
   uint8_t _data_buffer = 0;
   uint8_t _ctrl_buffer = 0; // RS(4) RW(2) E(1)

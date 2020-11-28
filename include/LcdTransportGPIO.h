@@ -16,7 +16,7 @@ public:
 			 gpio_num_t d0, gpio_num_t d1, gpio_num_t d2, gpio_num_t d3,
 			 gpio_num_t d4, gpio_num_t d5, gpio_num_t d6, gpio_num_t d7);
 protected:
-  void latch() override;
+  void latch(bool only_send_four_bits= false) override;
   void write4bits(uint8_t value);
   void write8bits(uint8_t value);
   void pulseEnable(void) override;
