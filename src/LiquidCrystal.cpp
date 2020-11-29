@@ -59,31 +59,31 @@ LiquidCrystal::LiquidCrystal(gpio_num_t rs,  gpio_num_t enable,
 */
 
 /*
-inline void LiquidCrystal<LcdTransport>::command(uint8_t value);
+inline void LiquidCrystal::command(uint8_t value);
 template<>
-inline size_t LiquidCrystal<LcdTransport>::write(uint8_t value);
+inline size_t LiquidCrystal::write(uint8_t value);
 template<>
-void LiquidCrystal<LcdTransport>::begin(uint8_t cols, uint8_t lines, uint8_t dotsize);
+void LiquidCrystal::begin(uint8_t cols, uint8_t lines, uint8_t dotsize);
 */
 
 
-LiquidCrystal<LcdTransport>::LiquidCrystal(LcdTransport transport){
+LiquidCrystal::LiquidCrystal(LcdTransport* transport){
   transport = transport;
-  if (transport.get_bit_mode() == LcdTransport::bit_mode::FOUR_BIT)
+  if (transport->get_bit_mode() == LcdTransport::bit_mode::FOUR_BIT)
     _displayfunction = LCD_4BITMODE | LCD_1LINE | LCD_5x8DOTS;
   else 
     _displayfunction = LCD_8BITMODE | LCD_1LINE | LCD_5x8DOTS;
-  begin(16, 1);  
+ 
 }
-LiquidCrystal<LcdTransport>::LiquidCrystal(){
-
-}
-
-LiquidCrystal<LcdTransport>::~LiquidCrystal(){
+LiquidCrystal::LiquidCrystal(){
 
 }
 
-void LiquidCrystal<LcdTransport>::begin(uint8_t cols, uint8_t lines, uint8_t dotsize) {
+LiquidCrystal::~LiquidCrystal(){
+
+}
+
+void LiquidCrystal::begin(uint8_t cols, uint8_t lines, uint8_t dotsize) {
   
   if (lines > 1) {
     _displayfunction |= LCD_2LINE;
@@ -114,25 +114,25 @@ void LiquidCrystal<LcdTransport>::begin(uint8_t cols, uint8_t lines, uint8_t dot
   
   
   //put the LCD into 4 bit or 8 bit mode
-  if (transport.get_bit_mode() == LcdTransport::bit_mode::FOUR_BIT) {
+  if (transport->get_bit_mode() == LcdTransport::bit_mode::FOUR_BIT) {
     // this is according to the hitachi HD44780 datasheet
     // figure 24, pg 46
 
     // we start in 8bit mode, try to set 4 bit mode
     // write4bits(0x03); Kanske blir något problem här, håll ögat öppet!
-    transport.send(0x03,0,true);
+    transport->send(0x03,0,true);
     vTaskDelay(5 / portTICK_PERIOD_MS);// wait min 4.1ms
 
     // second try
-    transport.send(0x03,0,true);
+    transport->send(0x03,0,true);
     vTaskDelay(5 / portTICK_PERIOD_MS); // wait min 4.1ms
     
     // third go!
-    transport.send(0x03,0,true);
+    transport->send(0x03,0,true);
     delayMicroseconds(150);
 
     // finally, set to 4-bit interface
-    transport.send(0x02,0,true);
+    transport->send(0x02,0,true);
   } else {
     // this is according to the hitachi HD44780 datasheet
     // page 45 figure 23
@@ -166,12 +166,12 @@ void LiquidCrystal<LcdTransport>::begin(uint8_t cols, uint8_t lines, uint8_t dot
 
 }
 
-void LiquidCrystal<LcdTransport>::init()
+void LiquidCrystal::init()
 {
   
 }
 
-void LiquidCrystal<LcdTransport>::setRowOffsets(int row0, int row1, int row2, int row3)
+void LiquidCrystal::setRowOffsets(int row0, int row1, int row2, int row3)
 {
   _row_offsets[0] = row0;
   _row_offsets[1] = row1;
@@ -180,19 +180,19 @@ void LiquidCrystal<LcdTransport>::setRowOffsets(int row0, int row1, int row2, in
 }
 
 /********** high level commands, for the user! */
-void LiquidCrystal<LcdTransport>::clear()
+void LiquidCrystal::clear()
 {
   command(LCD_CLEARDISPLAY);  // clear display, set cursor position to zero
     vTaskDelay(2 / portTICK_PERIOD_MS); // this command takes a long time!
 }
 
-void LiquidCrystal<LcdTransport>::home()
+void LiquidCrystal::home()
 {
   command(LCD_RETURNHOME);  // set cursor position to zero
   vTaskDelay(2 / portTICK_PERIOD_MS);  // this command takes a long time!
 }
 
-void LiquidCrystal<LcdTransport>::setCursor(uint8_t col, uint8_t row)
+void LiquidCrystal::setCursor(uint8_t col, uint8_t row)
 {
   const size_t max_lines = sizeof(_row_offsets) / sizeof(*_row_offsets);
   if ( row >= max_lines ) {
@@ -206,70 +206,70 @@ void LiquidCrystal<LcdTransport>::setCursor(uint8_t col, uint8_t row)
 }
 
 // Turn the display on/off (quickly)
-void LiquidCrystal<LcdTransport>::noDisplay() {
+void LiquidCrystal::noDisplay() {
   _displaycontrol &= ~LCD_DISPLAYON;
   command(LCD_DISPLAYCONTROL | _displaycontrol);
 }
-void LiquidCrystal<LcdTransport>::display() {
+void LiquidCrystal::display() {
   _displaycontrol |= LCD_DISPLAYON;
   command(LCD_DISPLAYCONTROL | _displaycontrol);
 }
 
 // Turns the underline cursor on/off
-void LiquidCrystal<LcdTransport>::noCursor() {
+void LiquidCrystal::noCursor() {
   _displaycontrol &= ~LCD_CURSORON;
   command(LCD_DISPLAYCONTROL | _displaycontrol);
 }
-void LiquidCrystal<LcdTransport>::cursor() {
+void LiquidCrystal::cursor() {
   _displaycontrol |= LCD_CURSORON;
   command(LCD_DISPLAYCONTROL | _displaycontrol);
 }
 
 // Turn on and off the blinking cursor
-void LiquidCrystal<LcdTransport>::noBlink() {
+void LiquidCrystal::noBlink() {
   _displaycontrol &= ~LCD_BLINKON;
   command(LCD_DISPLAYCONTROL | _displaycontrol);
 }
-void LiquidCrystal<LcdTransport>::blink() {
+void LiquidCrystal::blink() {
   _displaycontrol |= LCD_BLINKON;
   command(LCD_DISPLAYCONTROL | _displaycontrol);
 }
 
 // These commands scroll the display without changing the RAM
-void LiquidCrystal<LcdTransport>::scrollDisplayLeft(void) {
+void LiquidCrystal::scrollDisplayLeft(void) {
   command(LCD_CURSORSHIFT | LCD_DISPLAYMOVE | LCD_MOVELEFT);
 }
-void LiquidCrystal<LcdTransport>::scrollDisplayRight(void) {
+void LiquidCrystal::scrollDisplayRight(void) {
   command(LCD_CURSORSHIFT | LCD_DISPLAYMOVE | LCD_MOVERIGHT);
 }
 
 // This is for text that flows Left to Right
-void LiquidCrystal<LcdTransport>::leftToRight(void) {
+void LiquidCrystal::leftToRight(void) {
   _displaymode |= LCD_ENTRYLEFT;
   command(LCD_ENTRYMODESET | _displaymode);
 }
 
 // This is for text that flows Right to Left
-void LiquidCrystal<LcdTransport>::rightToLeft(void) {
+void LiquidCrystal::rightToLeft(void) {
   _displaymode &= ~LCD_ENTRYLEFT;
   command(LCD_ENTRYMODESET | _displaymode);
 }
 
 // This will 'right justify' text from the cursor
-void LiquidCrystal<LcdTransport>::autoscroll(void) {
+void LiquidCrystal::autoscroll(void) {
   _displaymode |= LCD_ENTRYSHIFTINCREMENT;
   command(LCD_ENTRYMODESET | _displaymode);
 }
 
 // This will 'left justify' text from the cursor
-void LiquidCrystal<LcdTransport>::noAutoscroll(void) {
+void LiquidCrystal::noAutoscroll(void) {
   _displaymode &= ~LCD_ENTRYSHIFTINCREMENT;
   command(LCD_ENTRYMODESET | _displaymode);
 }
 
 // Allows us to fill the first 8 CGRAM locations
 // with custom characters
-void LiquidCrystal<LcdTransport>::createChar(uint8_t location, uint8_t charmap[]) {
+void LiquidCrystal::createChar(uint8_t location, uint8_t charmap[]) {
   location &= 0x7; // we only have 8 locations 0-7
   command(LCD_SETCGRAMADDR | (location << 3));
   for (int i=0; i<8; i++) {
@@ -279,11 +279,11 @@ void LiquidCrystal<LcdTransport>::createChar(uint8_t location, uint8_t charmap[]
 
 
 
-inline void LiquidCrystal<LcdTransport>::command(uint8_t value) {
-  transport.send(value, LOW);
+inline void LiquidCrystal::command(uint8_t value) {
+  transport->send(value, LOW);
 }
 
-inline size_t LiquidCrystal<LcdTransport>::write(uint8_t value) {
-  transport.send(value, HIGH);
+inline size_t LiquidCrystal::write(uint8_t value) {
+  transport->send(value, HIGH);
   return 1; // assume sucess
 }

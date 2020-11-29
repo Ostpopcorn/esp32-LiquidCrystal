@@ -46,19 +46,10 @@
 #define LCD_5x10DOTS 0x04
 #define LCD_5x8DOTS 0x00
 
-template <class transport_t> class LiquidCrystal;
-template <> class LiquidCrystal<LcdTransport>;
-
-template <class transport_t> 
-class LiquidCrystal{
-
-};
-
-template <> 
-class LiquidCrystal<LcdTransport>{
+class LiquidCrystal {
 public:
   LiquidCrystal();
-  LiquidCrystal(LcdTransport);
+  LiquidCrystal(LcdTransport*);
   virtual ~LiquidCrystal();
   void init();
   
@@ -96,7 +87,7 @@ private:
 
   uint8_t _numlines;
   uint8_t _row_offsets[4];
-  LcdTransport transport;
+  LcdTransport* transport;
 };
 
 #endif
