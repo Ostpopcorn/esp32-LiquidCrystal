@@ -12,7 +12,7 @@
 #include "delayMicroseconds.h"
 
 #define TAG "LCD"
-// DEssa är bara så att den tillfälligt kompilerar.
+// Dessa är bara så att den tillfälligt kompilerar.
 #define HIGH 1
 #define LOW 0
 // #define digitalWrite(pin,mode) ESP_LOGI(TAG,"digitalWrite call... fix pliz")
@@ -67,16 +67,17 @@ void LiquidCrystal::begin(uint8_t cols, uint8_t lines, uint8_t dotsize);
 */
 
 
-LiquidCrystal::LiquidCrystal(LcdTransport* transport){
-  transport = transport;
-  if (transport->get_bit_mode() == LcdTransport::bit_mode::FOUR_BIT)
+LiquidCrystal::LiquidCrystal(){
+
+}
+
+LiquidCrystal::LiquidCrystal(bit_mode mode): mode{mode}{
+
+  if (get_bit_mode() == bit_mode::FOUR_BIT)
     _displayfunction = LCD_4BITMODE | LCD_1LINE | LCD_5x8DOTS;
   else 
     _displayfunction = LCD_8BITMODE | LCD_1LINE | LCD_5x8DOTS;
  
-}
-LiquidCrystal::LiquidCrystal(){
-
 }
 
 LiquidCrystal::~LiquidCrystal(){
@@ -114,25 +115,25 @@ void LiquidCrystal::begin(uint8_t cols, uint8_t lines, uint8_t dotsize) {
   
   
   //put the LCD into 4 bit or 8 bit mode
-  if (transport->get_bit_mode() == LcdTransport::bit_mode::FOUR_BIT) {
+  if (get_bit_mode() == bit_mode::FOUR_BIT) {
     // this is according to the hitachi HD44780 datasheet
     // figure 24, pg 46
 
     // we start in 8bit mode, try to set 4 bit mode
     // write4bits(0x03); Kanske blir något problem här, håll ögat öppet!
-    transport->send(0x03,0,true);
+    send(0x03,0,true);
     vTaskDelay(5 / portTICK_PERIOD_MS);// wait min 4.1ms
 
     // second try
-    transport->send(0x03,0,true);
+    send(0x03,0,true);
     vTaskDelay(5 / portTICK_PERIOD_MS); // wait min 4.1ms
     
     // third go!
-    transport->send(0x03,0,true);
+    send(0x03,0,true);
     delayMicroseconds(150);
 
     // finally, set to 4-bit interface
-    transport->send(0x02,0,true);
+    send(0x02,0,true);
   } else {
     // this is according to the hitachi HD44780 datasheet
     // page 45 figure 23
@@ -280,10 +281,47 @@ void LiquidCrystal::createChar(uint8_t location, uint8_t charmap[]) {
 
 
 inline void LiquidCrystal::command(uint8_t value) {
-  transport->send(value, LOW);
+  send(value, LOW);
 }
 
 inline size_t LiquidCrystal::write(uint8_t value) {
-  transport->send(value, HIGH);
+  send(value, HIGH);
   return 1; // assume sucess
+}
+
+void LiquidCrystal::send(uint8_t value, uint8_t mode, bool only_send_four_bits){
+    writeCtrlBuffer(RS_PIN,mode); //gpio_set_level(_rs_pin, mode);
+
+    // if there is a RW pin indicated, set it low to Write, subclasses will deal the rest
+    writeCtrlBuffer(RW_PIN,0); //gpio_set_level(_rs_pin, mode);
+    writeCtrlBuffer(E_PIN,0); //gpio_set_level(_rs_pin, mode);
+    writeDataBuffer(value);
+    latch(only_send_four_bits);
+    // pulseEnable();
+}
+
+
+LiquidCrystal::bit_mode LiquidCrystal::get_bit_mode(){
+    return mode;
+}
+void LiquidCrystal::writeDataBuffer(uint8_t data_in){
+    _data_buffer = data_in;
+}
+void LiquidCrystal::writeCtrlBuffer(ctrl_pins pin, uint8_t value){
+    if (pin != NO_PIN){
+        // set the position to zero
+        _ctrl_buffer &= ~(get_ctrl_buffer_mask(pin));
+        // write to that position
+        _ctrl_buffer |= ((value==0?0:1) & get_ctrl_buffer_mask(pin));     
+
+    }
+}
+uint8_t LiquidCrystal::get_data_buffer(){
+    return _data_buffer;
+}
+uint8_t LiquidCrystal::get_ctrl_buffer(){
+    return _ctrl_buffer;
+} 
+uint8_t LiquidCrystal::get_ctrl_buffer_mask(ctrl_pins pin){
+    return 1<<(pin-1);
 }
