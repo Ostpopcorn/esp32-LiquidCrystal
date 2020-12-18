@@ -5,7 +5,6 @@
 #include "freertos/FreeRTOS.h"
 #include <stdio.h>
 #include <inttypes.h>
-#include "LcdTransport.h"
 // #include "Print.h"
 
 // commands

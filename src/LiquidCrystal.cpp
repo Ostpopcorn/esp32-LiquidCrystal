@@ -8,7 +8,6 @@
 #include <inttypes.h>
 #include "esp_log.h"
 
-#include "LcdTransport.h"
 #include "delayMicroseconds.h"
 
 #define TAG "LCD"
