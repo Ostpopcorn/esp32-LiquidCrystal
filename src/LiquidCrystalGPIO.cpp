@@ -46,8 +46,9 @@ LiquidCrystalGPIO::LiquidCrystalGPIO(bit_mode pinmode,gpio_num_t rs, gpio_num_t 
 void LiquidCrystalGPIO::latch(bool only_send_four_bits) {
   // alla nya data ska ut på samtliga linor, ska optimeras sen så att bara de som
   // ändrats på ska uppdateras
-  
-  gpio_set_level(_rw_pin, (get_ctrl_buffer() & get_ctrl_buffer_mask(ctrl_pins::RW_PIN)));
+  if (_rw_pin != GPIO_NUM_NC) { 
+    gpio_set_level(_rw_pin, (get_ctrl_buffer() & get_ctrl_buffer_mask(ctrl_pins::RW_PIN)));
+  }
   gpio_set_level(_rs_pin, (get_ctrl_buffer() & get_ctrl_buffer_mask(ctrl_pins::RS_PIN)));
   gpio_set_level(_enable_pin, (get_ctrl_buffer() & get_ctrl_buffer_mask(ctrl_pins::E_PIN)));
 
