@@ -324,3 +324,11 @@ uint8_t LiquidCrystal::get_ctrl_buffer(){
 uint8_t LiquidCrystal::get_ctrl_buffer_mask(ctrl_pins pin){
     return 1<<(pin-1);
 }
+
+void LiquidCrystal::latch(bool only_send_four_bits ){
+  ESP_LOGI(TAG,"LCL latch");
+}
+
+void LiquidCrystal::pulseEnable(){
+  ESP_LOGI(TAG,"LCL pulseenable");
+}

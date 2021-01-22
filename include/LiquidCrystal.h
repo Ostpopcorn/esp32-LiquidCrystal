@@ -2,7 +2,7 @@
 #define LiquidCrystal_h
 
 
-#include "freertos/FreeRTOS.h"
+
 #include <stdio.h>
 #include <inttypes.h>
 // #include "Print.h"
@@ -101,8 +101,8 @@ protected:
   uint8_t get_ctrl_buffer();
   uint8_t get_ctrl_buffer_mask(ctrl_pins pin);
 
-  virtual void latch(bool only_send_four_bits = false) = 0;
-  virtual void pulseEnable() = 0;
+  virtual void latch(bool only_send_four_bits = false);
+  virtual void pulseEnable();
   
 private:
 
